@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on A Nejati&#39;s blog</title>
+    <link>https://blog.coalescencelab.com/posts/</link>
+    <description>Recent content in Posts on A Nejati&#39;s blog</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 02 Aug 2025 07:01:49 -0700</lastBuildDate>
+    <atom:link href="https://blog.coalescencelab.com/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Long Context Transformers with Finely Crafted State Spaces</title>
+      <link>https://blog.coalescencelab.com/posts/fpattention/</link>
+      <pubDate>Sat, 02 Aug 2025 07:01:49 -0700</pubDate>
+      <guid>https://blog.coalescencelab.com/posts/fpattention/</guid>
+      <description>&lt;p&gt;The ability of transformers to capture long‐range dependencies hinges on the Θ(L²) cost of softmax self–attention, which becomes prohibitive once the context &lt;em&gt;L&lt;/em&gt; reaches millions of tokens [1]. To solve this, people have been trying two broad strategies:&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;Reducing the number of pairwise interactions.&lt;/strong&gt; Examples include strided or windowed schemes [2, 3] and low–rank projections such as Linformer [4]. These methods preserve the softmax kernel but an issue that keeps coming up is degraded recall on tasks that require global context.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>A Coupled Cluster Neural Network Ansatz</title>
+      <link>https://blog.coalescencelab.com/posts/cc-nn-ansatz/</link>
+      <pubDate>Wed, 24 Jul 2024 07:04:29 -0700</pubDate>
+      <guid>https://blog.coalescencelab.com/posts/cc-nn-ansatz/</guid>
+      <description>&lt;p&gt;The main computational difficulty in variational methods is computing the energy integral over the entire domain, which is in practice intractable, therefore monte carlo integration techniques must be used. While VMC methods reduce the computational complexity of the method by avoiding evaluating a high-dimensional integral, they introduce the need for sampling a large number of system configurations, leading to slow convergence for larger molecules.&lt;/p&gt;&#xA;&lt;p&gt;In contrast, in Coupled Cluster (CC) theory, we apply a similarity transform to the wavefunction and obtain a set of equations. The equations can be solved using e.g. quasi-Newton methods, and the solutions can be mapped back to the original basis. This similarity transform takes electron correlation effects into account through the use of an exponential cluster operator. This operator, when applied to a reference wavefunction (e.g. the Hartree-Fock determinant, in usual implementations), generates a hierarchy of excited determinants that effectively capture the correlated motion of electrons.&#xA;One of the most appealing aspects of coupled cluster theory is its size extensivity, meaning that the calculated energy scales correctly with the size of the system. This property is crucial for accurately describing chemical systems, especially when dealing with larger molecules or extended systems. Furthermore, the theory provides a clear pathway for improving accuracy through the inclusion of higher-order excitations, from the widely used CCSD (singles and doubles) to more advanced methods like CCSD(T), which are the &amp;ldquo;gold standard&amp;rdquo; of quantum chemistry.&#xA;Historically, CC has been used with Gaussian-type or Slater-type orbitals. In this work we set out to investigate if the use of CC with a Neural Network ansatz could offer improvements in accuracy without requiring excessively large bases.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
