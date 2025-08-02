@@ -21,8 +21,7 @@ hideHeader = false
 # Intro on main page, content is markdown
 homeIntroTitle = 'Hi!'
 homeIntroContent = """
-I am A Nejati.
-blebslub
+I'm Alireza Nejati, I have a PhD from UoA and I do research in ML, physics, and comp bio.
 """
 
 # Collection to display on home
@@ -31,7 +30,7 @@ homeCollection = 'posts'
 
 # Lists parameters
 paginationSize = 100
-listSummaries = true
+listSummaries = false
 listDateFormat = '2 Jan 2006'
 
 # Breadcrumbs
@@ -40,14 +39,14 @@ enabled = true
 showCurrentPage = true
 home = "Home"
 
-# Social icons
-[[params.social]]
-name = "linkedin"
-url = "https://www.linkedin.com/in/user/"
+# # Social icons
+# [[params.social]]
+# name = "linkedin"
+# url = "https://www.linkedin.com/in/user/"
 
-[[params.social]]
-name = "medium"
-url = "https://medium.com/@user"
+# [[params.social]]
+# name = "medium"
+# url = "https://medium.com/@user"
 
 [[params.social]]
 name = "github"
@@ -62,9 +61,9 @@ url = "/"
 name = "posts"
 url = "/posts"
 
-[[params.menu]]
-name = "about"
-url = "/about"
+# [[params.menu]]
+# name = "about"
+# url = "/about"
 
 # Syntax highlight on code blocks
 [markup]

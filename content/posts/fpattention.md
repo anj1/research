@@ -19,17 +19,17 @@ The ability of transformers to capture long‐range dependencies hinges on the �
 
 Recent work [7, 8, 9] has pointed out that the challenge for long-context models is a fundamental trade-off between recall capacity and inference throughput, governed by the model's recurrent state size. While standard attention performs well at recall, its KV-cache grows linearly, making it memory-intensive. Conversely, efficient alternatives with fixed-size states exhibit degraded performance on recall-intensive tasks.
 
-A promising direction is to hybridize mechanisms: for instance, the BASED architecture [9] combines a degree-2 Taylor approximation of softmax for global context with local sliding-window attention for precision. The work we propose here introduces a significant generalization of this polynomial approach. We observe that the Taylor approximation is just one specific instance of a degree-2 polynomial kernel. In our approach, we provide a single, unified mechanism to navigate the state-size vs. recall Pareto frontier. By adjusting the projection dimensions $\{d_\ell\}$, our work offers a continuous memory knob to tune model capacity without resorting to stochastic methods or combining disparate architectural components. Furthermore, our framework is compatible with hybrid designs, suggesting that its global, higher-order modeling capabilities can be complemented by local attention mechanisms to capture both long-range dependencies and fine-grained local interactions, forming a powerful new class of efficient transformers.
+A promising direction is to hybridize mechanisms: for instance, the BASED architecture [9] combines a degree-2 Taylor approximation of softmax for global context with local sliding-window attention for precision. The work we propose here introduces a significant generalization of this polynomial approach. We observe that the Taylor approximation is just one specific instance of a degree-2 polynomial kernel. In this new approach, we provide a single, unified mechanism to navigate the state-size vs. recall Pareto frontier. By adjusting the projection dimensions $\{d_\ell\}$, the new approach outlined here offers a continuous memory knob to tune model capacity without resorting to stochastic methods or combining disparate architectural components. Furthermore, this new framework is compatible with hybrid designs, suggesting that its global, higher-order modeling capabilities can be complemented by local attention mechanisms to capture both long-range dependencies and fine-grained local interactions, forming a powerful new class of efficient transformers.
 
 **Factorized Polynomial Attention (FPA).** We propose¹ an exact kernel that expresses a degree‑$n$ polynomial as a product of $n$ lower‑dimensional dot products:
 $$k_{\text{FPA}}(q,k)=\prod_{\ell=1}^{n}\bigl((W^{(\ell)}q)^{\top}(W^{(\ell)}k)\bigr)$$
 where the branch widths $d_\ell$ are user‑specified. Setting $n=1$ recovers linear attention; $n=d$ and $W^{(\ell)}=I$ recover Power attention of order $d$. Between these extremes, $\sum_\ell d_\ell$ acts as a **continuous memory knob** with no stochastic error. In addition, if desired, additional parameters can be eliminated if $W^{(\ell)}$ are fixed blocks. The outer‑product update factorizes into $n$ standard GEMMs, enabling GPU/TPU fusion.
 
-In this work, we introduce FPA, discuss various special cases, briefly discuss efficient implementation, and also discuss its relationship with other work. To our knowledge, no published method delivers an exact polynomial kernel with arbitrarily adjustable state that is amenable to the fast‑weight update. Works closest in spirit (product kernels [10], Kronecker attention [11], higher‑order transformers [12]) either maintain quadratic complexity in $L$ or fix the state width. We leave detailed evaluation of FPA on sequence modeling tasks to subsequent papers.
+In this work, we introduce FPA, discuss various special cases, briefly discuss efficient implementation, and also discuss its relationship with other work. To my knowledge, no published method delivers an exact polynomial kernel with arbitrarily adjustable state that is amenable to the fast‑weight update. Works closest in spirit (product kernels [10], Kronecker attention [11], higher‑order transformers [12]) either maintain quadratic complexity in $L$ or fix the state width. We leave detailed evaluation of FPA on sequence modeling tasks to subsequent papers.
 
 ## Background
 
-Our work builds upon the foundations of sequence modeling, primarily drawing from the Transformer architecture and its subsequent linear-time variants. We provide a brief overview of the concepts essential for understanding Factorized Polynomial Attention.
+We start from the foundations of sequence modeling, primarily drawing from the Transformer architecture and its subsequent linear-time variants. I'll provide a brief overview of the concepts essential for understanding Factorized Polynomial Attention.
 
 **Transformers and Self-Attention.** At the core of the Transformer architecture [1] is the self-attention mechanism. Given a sequence of input embeddings represented by matrices for queries ($Q$), keys ($K$), and values ($V$), all in $\mathbb{R}^{L \times d}$ where $L$ is the sequence length and $d$ is the model dimension, standard self-attention computes the output matrix $O \in \mathbb{R}^{L \times d}$ as:
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d}}\right)V$$
@@ -79,7 +79,7 @@ This identity allows power attention to be framed as an instance of linear atten
 
 TPOW as described above contains many redundant entries (identical monomial terms) and unnecessary computation. In the same work ([7]), this drawback was identified, and a more optimized kernel (TSPOW) was suggested as a way of eliminating the redundancy by only retaining the (appropriately scaled) upper-triangular elements of the tensor of monomials. However, this becomes a distinct operation from TPOW and requires its own separate implementation.
 
-Increasing dimensions causes the state space to grow exponentially. For instance, with $p=2$, the state size scales with $O(d^4)$, and for $p=3$, it scales with $O(d^6)$, significantly increasing the model's memory capacity. While powerful, this monolithic expansion can be computationally demanding and offers only coarse control over the state space size. Our work in this paper is directly motivated by the need for a more granular and efficient method to control the trade-off between model expressiveness and computational cost.
+Increasing dimensions causes the state space to grow exponentially. For instance, with $p=2$, the state size scales with $O(d^4)$, and for $p=3$, it scales with $O(d^6)$, significantly increasing the model's memory capacity. While powerful, this monolithic expansion can be computationally demanding and offers only coarse control over the state space size, there work here is directly motivated by the need for a more granular and efficient method to control the trade-off between model expressiveness and computational cost.
 
 In the approach we introduce here, instead of taking the tensor product of the input vector with itself, we take the tensor product of multiple *projections* of the input vector into spaces of varying dimension. This offers a way to tune the state to any desired size while remaining exact and compatible with recursive implementations of linear/power attention-type with linear sequence length memory requirements.
 
@@ -99,7 +99,7 @@ $$\phi_{\text{FPA}}(z) = z^{(1)} \otimes z^{(2)} \otimes \dots \otimes z^{(n)} =
 
 The output is a vector in a high-dimensional space $\mathbb{R}^{D}$, where $D = \prod_{i=1}^{n} d_i$. In the case where $W^{(i)} = I$, this reduces to Power Attention with power $n$ and state space size $d^n$. As before, in the case where $n = 1$ and $W^{(1)}=I$, this reduces to standard linear attention. Importantly, by appropriate choice of $d_i$, we can finely tune the size of the state space.
 
-An important note is that the projection matrices $W^{(i)}$ are unique to each attention head. Indeed, the matrices need not even have the same shape across different heads. We can make use of this property to show that the optimized TSPOW kernel is also a special case of FPA, see Appendix.
+An important note is that the projection matrices $W^{(i)}$ are unique to each attention head. Indeed, the matrices need not even have the same shape across different heads. We can make use of this property to show that the optimized TSPOW kernel is also a special case of FPA, see Notes.
 
 ### Relationship to Linear Attention
 A key basic property of the Kronecker product allows computing this kernel without explicitly constructing the state space, as with power attention. The inner product of two transformed vectors in the high-dimensional space simplifies to a product of inner products in the lower-dimensional projected spaces.
@@ -178,36 +178,8 @@ This involves $n$ independent, parallelizable matrix multiplications whose resul
 ### Footnotes
 ¹ Code at `github.com/anj1/fpa`.
 
----
-## References
 
-[1] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. *Advances in neural information processing systems*, 30, 2017.
-
-[2] Iz Beltagy, Matthew E Peters, and Arman Cohan. Longformer: The long-document transformer. *arXiv preprint arXiv:2004.05150*, 2020.
-
-[3] Rewon Child, Scott Gray, Alec Radford, and Ilya Sutskever. Generating long sequences with sparse transformers. *arXiv preprint arXiv:1904.10509*, 2019.
-
-[4] Sinong Wang, Belinda Z Li, Madian Khabsa, Han Fang, and Hao Ma. Linformer: Self-attention with linear complexity. *arXiv preprint arXiv:2006.04768*, 2020.
-
-[5] Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and François Fleuret. Transformers are rnns: Fast autoregressive transformers with linear attention. In *International conference on machine learning*, pages 5156–5165. PMLR, 2020.
-
-[6] Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamas Sarlos, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, et al. Rethinking attention with performers. *arXiv preprint arXiv:2009.14794*, 2020.
-
-[7] Carles Gelada, Jacob Buckman, Sean Zhang, and Txus Bach. Scaling context requires rethinking attention. *arXiv preprint arXiv:2507.04239*, 2025.
-
-[8] Imanol Schlag, Kazuki Irie, and Jürgen Schmidhuber. Linear transformers are secretly fast weight programmers. In *International conference on machine learning*, pages 9355–9366. PMLR, 2021.
-
-[9] Simran Arora, Sabri Eyuboglu, Michael Zhang, Aman Timalsina, Silas Alberti, Dylan Zinsley, James Zou, Atri Rudra, and Christopher Ré. Simple linear attention language models balance the recall-throughput tradeoff. *arXiv preprint arXiv:2402.18668*, 2024.
-
-[10] Yao-Hung Hubert Tsai, Shaojie Bai, Makoto Yamada, Louis-Philippe Morency, and Ruslan Salakhutdinov. Transformer dissection: a unified understanding of transformer’s attention via the lens of kernel. *arXiv preprint arXiv:1908.11775*, 2019.
-
-[11] Hongyang Gao, Zhengyang Wang, and Shuiwang Ji. Kronecker attention networks. In *Proceedings of the 26th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining*, pages 229–237, 2020.
-
-[12] Soroush a d Rabusseau Omranpour, Guillaume and Reihaneh Rabbany. Higher order transformers: Efficient attention mechanism for tensor structured data. *arXiv preprint arXiv:2412.02919*, 2024.
-
-[13] Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. Flashattention: Fast and memory-efficient exact attention with io-awareness. *Advances in neural information processing systems*, 35:16344–16359, 2022.
-
-## Appendix
+## Notes
 
 ### TSPOW is a special case of FPA
 
@@ -277,3 +249,32 @@ This construction produces every sorted index tuple once (no duplicates) and app
 Viewing TSPOW via FPA clarifies that many "special" polynomial kernels are just different block masks and scalings; they can therefore inherit the same hardware paths and optimisation tricks as generic FPA.
 
 As stated before, however, this construction is only possible by choosing the projection matrices $W^{(i)}$ to have different shapes across different heads. In practice, this can complicate the implementation because different gpu threads will have to compute different branches, just as the implementation in [7] describes. There is no free lunch here; writing TSPOW in terms of FPA does not provide a free performant gpu implementation. Specialized code is still needed.
+
+---
+## References
+
+[1] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. *Advances in neural information processing systems*, 30, 2017.
+
+[2] Iz Beltagy, Matthew E Peters, and Arman Cohan. Longformer: The long-document transformer. *arXiv preprint arXiv:2004.05150*, 2020.
+
+[3] Rewon Child, Scott Gray, Alec Radford, and Ilya Sutskever. Generating long sequences with sparse transformers. *arXiv preprint arXiv:1904.10509*, 2019.
+
+[4] Sinong Wang, Belinda Z Li, Madian Khabsa, Han Fang, and Hao Ma. Linformer: Self-attention with linear complexity. *arXiv preprint arXiv:2006.04768*, 2020.
+
+[5] Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and François Fleuret. Transformers are rnns: Fast autoregressive transformers with linear attention. In *International conference on machine learning*, pages 5156–5165. PMLR, 2020.
+
+[6] Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamas Sarlos, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, et al. Rethinking attention with performers. *arXiv preprint arXiv:2009.14794*, 2020.
+
+[7] Carles Gelada, Jacob Buckman, Sean Zhang, and Txus Bach. Scaling context requires rethinking attention. *arXiv preprint arXiv:2507.04239*, 2025.
+
+[8] Imanol Schlag, Kazuki Irie, and Jürgen Schmidhuber. Linear transformers are secretly fast weight programmers. In *International conference on machine learning*, pages 9355–9366. PMLR, 2021.
+
+[9] Simran Arora, Sabri Eyuboglu, Michael Zhang, Aman Timalsina, Silas Alberti, Dylan Zinsley, James Zou, Atri Rudra, and Christopher Ré. Simple linear attention language models balance the recall-throughput tradeoff. *arXiv preprint arXiv:2402.18668*, 2024.
+
+[10] Yao-Hung Hubert Tsai, Shaojie Bai, Makoto Yamada, Louis-Philippe Morency, and Ruslan Salakhutdinov. Transformer dissection: a unified understanding of transformer’s attention via the lens of kernel. *arXiv preprint arXiv:1908.11775*, 2019.
+
+[11] Hongyang Gao, Zhengyang Wang, and Shuiwang Ji. Kronecker attention networks. In *Proceedings of the 26th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining*, pages 229–237, 2020.
+
+[12] Soroush a d Rabusseau Omranpour, Guillaume and Reihaneh Rabbany. Higher order transformers: Efficient attention mechanism for tensor structured data. *arXiv preprint arXiv:2412.02919*, 2024.
+
+[13] Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. Flashattention: Fast and memory-efficient exact attention with io-awareness. *Advances in neural information processing systems*, 35:16344–16359, 2022.
