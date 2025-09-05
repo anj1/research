@@ -81,7 +81,7 @@ TPOW as described above contains many redundant entries (identical monomial term
 
 Increasing dimensions causes the state space to grow exponentially. For instance, with $p=2$, the state size scales with $O(d^4)$, and for $p=3$, it scales with $O(d^6)$, significantly increasing the model's memory capacity. While powerful, this monolithic expansion can be computationally demanding and offers only coarse control over the state space size. The work here is directly motivated by the need for a more granular and efficient method to control the trade-off between model expressiveness and computational cost.
 
-In the approach we introduce here, instead of taking the tensor product of the input vector with itself, we take the tensor product of multiple *projections* of the input vector into spaces of varying dimension. This offers a way to tune the state to any desired size while remaining exact and compatible with recursive implementations of linear/power attention.
+In the approach we introduce here, instead of taking the tensor product of the input vector with itself, we take the tensor product of multiple *projections* of the input vector into spaces of varying dimension. This offers a way to tune the state to any desired size while remaining exact and compatible with recursive implementations of linear/power attention.  
 
 ## Factorized Polynomial Attention (FPA)
 

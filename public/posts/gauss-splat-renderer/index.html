@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en-us"
+  dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+<link rel="icon" type="image/ico" href="https://blog.coalescencelab.com/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://blog.coalescencelab.com/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://blog.coalescencelab.com/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="https://blog.coalescencelab.com/android-chrome-192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://blog.coalescencelab.com/apple-touch-icon.png">
+
+<meta name="description" content=""/>
+
+
+
+<title>
+    
+     | A Nejati&#39;s blog
+    
+</title>
+
+<link rel="canonical" href="https://blog.coalescencelab.com/posts/gauss-splat-renderer/"/>
+
+<meta property="og:url" content="https://blog.coalescencelab.com/posts/gauss-splat-renderer/">
+  <meta property="og:site_name" content="A Nejati&#39;s blog">
+  <meta property="og:title" content="A Nejati&#39;s blog">
+  <meta property="og:description" content="Hacking Together the Fastest WebGL2 Gaussian Splat Renderer # Gaussian Splats are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn’t really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there’s a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/assets/combined.min.92c3bf7119b98cfdc79e93f36a451eb901d8bbbfed7d75814e6436cf6c9085dc.css" media="all">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+</head>
+
+
+
+
+
+
+
+<body class="auto">
+
+  <div class="content">
+    <header>
+      
+
+<div class="header">
+
+    
+
+    <h1 class="header-title">
+        <a href="https://blog.coalescencelab.com/">A Nejati&#39;s blog</a>
+    </h1>
+
+    <div class="header-menu">
+        
+
+        
+        
+
+        <p
+            class="small ">
+            <a href="/" >
+                /home
+            </a>
+        </p>
+        
+
+        <p
+            class="small ">
+            <a href="/posts" >
+                /posts
+            </a>
+        </p>
+        
+        
+    </div>
+
+    
+
+</div>
+
+    </header>
+
+    <main class="main">
+      
+
+
+
+
+<div class="breadcrumbs"><a href="/">Home</a><span class="breadcrumbs-separator">/</span><a href="/posts/">Posts</a><span class="breadcrumbs-separator">/</span>
+        <a href="/posts/gauss-splat-renderer/"></a></div>
+
+
+<div >
+  <article>
+    <header class="single-intro-container">
+        
+        <h1 class="single-title"></h1>
+        
+        
+    </header>
+    
+    <div class="single-content">
+      <h1 class="heading" id="hacking-together-the-fastest-webgl2-gaussian-splat-renderer">
+  Hacking Together the Fastest WebGL2 Gaussian Splat Renderer
+  <a class="anchor" href="#hacking-together-the-fastest-webgl2-gaussian-splat-renderer">#</a>
+</h1>
+<p><a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/">Gaussian Splats</a> are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn&rsquo;t really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there&rsquo;s a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.</p>
+<p>The official papers usually show off CUDA-based renderers, which is great but locks you into specific hardware or requires native apps that can&rsquo;t run in a browser. I wanted to build something that could hit 60fps on basically any machine with a modern browser. That meant figuring out how to do the heaviest part (the sorting) entirely on the GPU using web-standard APIs.</p>
+<p>So a while ago, <a href="https://github.com/PanverseRobotics/portality-web-viewer">I built a WebGL2 renderer</a> that does exactly that. The core idea is to offload the entire per-frame sort of millions of splats to the GPU using a bitonic sorting network implemented in fragment shaders.</p>
+<p>Here’s the breakdown of the tech stack and the main tricks I used:</p>
+<ol>
+<li><strong>The Platform:</strong> Why WebGL2 was the right tool for the job over WebGPU or WebGL1.</li>
+<li><strong>The Geometry:</strong> Ditching complex geometry and treating each splat as a single vertex to abuse the GPU&rsquo;s rasterizer.</li>
+<li><strong>The Sort:</strong> A deep dive into the bitonic sort implementation which is the heart of the renderer.</li>
+<li><strong>The Hacks:</strong> Using WebGL2 features like Multiple Render Targets to efficiently shuffle data around.</li>
+</ol>
+<p>Let&rsquo;s get into the platform choice first.</p>
+<h2 class="heading" id="webgl2">
+  WebGL2
+  <a class="anchor" href="#webgl2">#</a>
+</h2>
+<p>When you&rsquo;re building for the web, you&rsquo;ve got a few graphics APIs to choose from: WebGL and WebGL2, for example, and also a more compute-oriented API which is WebGPU.</p>
+<p>WebGPU is obviously the future. It has proper compute shaders which would make a GPGPU task like this much more straightforward to implement. But I was building a product, and browser support for WebGPU just wasn&rsquo;t (and still isn&rsquo;t quite) there yet. I needed something that would run everywhere, period. WebGL1 has the best support but it&rsquo;s based on OpenGL ES 2.0 and is missing fundamental features for compute work.</p>
+<p>So, <strong>WebGL2 was the only practical choice</strong>. It&rsquo;s got 97%+ browser support and is based on OpenGL ES 3.0, which added just enough GPGPU-friendly features to make this project possible.</p>
+<h3 class="heading" id="gpgpu-with-a-graphics-library">
+  GPGPU with a graphics library
+  <a class="anchor" href="#gpgpu-with-a-graphics-library">#</a>
+</h3>
+<p>The main GPGPU pattern in WebGL is to dump all your data into textures and then run fragment shaders to process it, rendering the output to another texture.</p>
+<p>WebGL1 makes this painful because it mostly just supports 8-bit-per-channel textures (like <code>RGBA8</code>). To store a 32-bit float, you have to manually encode it across the four 8-bit channels of a single pixel, then decode it back in the shader. Slow.</p>
+<p>WebGL2 fixes this with native support for better texture formats:</p>
+<ul>
+<li><strong>Float Textures:</strong> You can just create a texture with 32-bit float channels (<code>R32F</code>, <code>RGBA32F</code>). This is essential. I use these to store all the splat data: positions, colors, covariance matrices.</li>
+<li><strong>Integer Textures:</strong> Just as important is support for 32-bit unsigned integer textures (<code>R32UI</code>, <code>RG32UI</code>). A sorting algorithm is all about shuffling indices. My sorting kernels use <code>usampler2D</code> to read these index maps directly.</li>
+</ul>
+<h3 class="heading" id="glsl-300-es">
+  GLSL 3.00 ES
+  <a class="anchor" href="#glsl-300-es">#</a>
+</h3>
+<p>With WebGL2 you also get support for GLSL 3.00 ES shader language, which adds some important features for compute:</p>
+<ul>
+<li><strong><code>texelFetch</code>:</strong> This function lets you read from a texture using integer coordinates (e.g., <code>texelFetch(myTexture, ivec2(10, 5), 0)</code>). This is how you do array-style lookups. In contrast, the old <code>texture2D</code> function uses normalized <code>[0, 1]</code> coordinates and is subject to filtering, which you absolutely do not want when manipulating raw data.</li>
+<li><strong>Bitwise Operators:</strong> My bitonic sort implementation is built on bitwise operations (<code>^</code> for XOR, <code>&amp;</code> for AND). You can see it in the kernel code: <code>uint l = idx ^ uStepj;</code>. This is a core part of the sorting logic. These operators are native in GLSL 3.00 ES, making the implementation clean and fast.</li>
+<li><strong>Multiple Render Targets (MRTs):</strong> This is the killer feature for efficiency. MRTs let you write to multiple textures in a single shader pass. Once I&rsquo;ve sorted the splats and have a texture full of the new sorted indices, I use MRTs to reorder all the splat attribute textures (positions, colors, etc.) in one go. We&rsquo;ll explore in detail later.</li>
+</ul>
+<p>Basically, WebGL2 gave me a stable, cross-browser platform with just enough raw power to implement a complex, high-performance sorting algorithm. It let me treat the GPU like the massively parallel data processor it is.</p>
+<h2 class="heading" id="the-geometry-hack-one-point-one-splat">
+  The Geometry Hack: One Point, One Splat
+  <a class="anchor" href="#the-geometry-hack-one-point-one-splat">#</a>
+</h2>
+<p>So we&rsquo;ve established that all our splat data, which is position, rotation (as a quaternion or covariance matrix), scale, color, and opacity, lives in textures on the GPU. How do we tell the GPU to draw them?</p>
+<p>The naive approach might be to create a quad (two triangles, 4-6 vertices) for every single splat. For a few thousand objects, that&rsquo;s fine. For millions of splats, it&rsquo;s less ideal. Pushing 4 million vertices through the pipeline just to draw 1 million splats is pretty hard on the gpu.</p>
+<p>The solution is to slightly abuse the <strong><code>gl.POINTS</code></strong> primitive type. Instead of sending triangles or lines, we just send a giant list of single vertices. Each vertex represents the 3D center of a Gaussian splat. For a scene with 2 million splats, we create a vertex buffer with exactly 2 million positions, not 8 million.</p>
+<p>Now you might say: A point is just a point. A single pixel. You&rsquo;re right. We need to expand it into a 2D shape that covers the splat&rsquo;s projected area on the screen.</p>
+<p>In native OpenGL or DirectX, you&rsquo;d typically solve this with a geometry shader. A geometry shader can take a primitive like a point and programmatically output more complex geometry, like a quad, on the fly. Unfortunately, <strong>WebGL2 does not have geometry shaders.</strong> So we need to find some other way to do this.</p>
+<p>Here&rsquo;s the hack. We can use a feature called &ldquo;point sprites&rdquo; to get the job done using only a vertex and fragment shader.</p>
+<ol>
+<li>
+<p><strong>The Vertex Shader:</strong> In the vertex shader, we do the standard 3D projection to get the splat&rsquo;s center position on the screen. But we also do some extra math. Based on the splat&rsquo;s 3D covariance and its distance from the camera, we calculate how big it <em>should</em> appear on the screen in pixels. We then write this pixel size to a special built-in variable: <strong><code>gl_PointSize</code></strong>.</p>
+</li>
+<li>
+<p><strong>The Rasterizer:</strong> When the GPU&rsquo;s rasterizer sees <code>gl_PointSize</code>, it doesn&rsquo;t just draw a single pixel. It creates a screen-aligned square of fragments centered on the vertex&rsquo;s projected position, with a width and height equal to <code>gl_PointSize</code>. So, we&rsquo;ve effectively expanded our point into a quad without a geometry shader.</p>
+</li>
+<li>
+<p><strong>The Fragment Shader:</strong> Now, for every fragment (pixel) inside that square, the fragment shader runs. How do we know which part of the splat we&rsquo;re drawing? The GPU gives us another variable: <strong><code>gl_PointCoord</code></strong>. This is a <code>vec2</code> that gives us the local coordinate within the point sprite, ranging from <code>(0,0)</code> at the top-left to <code>(1,1)</code> at the bottom-right.</p>
+</li>
+</ol>
+<p>Using <code>gl_PointCoord</code>, we can treat our square point sprite just like a regular quad. We can calculate the 2D Gaussian function based on the coordinate. This lets us shape the splat into an ellipse and give it that soft, fuzzy look. We can also use <code>discard</code> to throw away any fragments that fall outside the ellipse, so we&rsquo;re not just drawing a bunch of colored squares.</p>
+<p>This vertex-to-fragment-shader pipeline achieves what we need. We get the memory efficiency of sending just one vertex per splat, and we get the flexibility to shape and color it correctly in the fragment shader. All our splat attributes (read from textures using the vertex&rsquo;s ID, <code>gl_VertexID</code>) are simply passed from the vertex shader to the fragment shader as <code>varying</code>s.</p>
+<p>This setup is the basic way the renderer works. But there&rsquo;s another issue: splats are transparent. To look right, they <em>must</em> be rendered in the correct back-to-front order. And for that, we need to sort them. Every. Single. Frame. And sorting is expensive.</p>
+<h2 class="heading" id="the-main-event-full-scene-gpu-bitonic-sort">
+  The Main Event: Full-Scene GPU Bitonic Sort
+  <a class="anchor" href="#the-main-event-full-scene-gpu-bitonic-sort">#</a>
+</h2>
+<p>When I was writing my renderer, most other web renderers sorted the splats on the CPU. But even a highly optimized <code>Array.prototype.sort()</code> would kill performance. The round trip of pulling millions of depth values from the GPU, sorting on the CPU, and pushing the results back is a massive bottleneck that would destroy our frame rate.The original gauss splat code sorted on the GPU, but it used custom CUDA functions which we don&rsquo;t have access to. The big challenge is sorting on the gpu using webgl2.</p>
+<p>Standard sorting algorithms like Quicksort or Mergesort aren&rsquo;t a great fit for GPUs. They rely on recursion and data-dependent branching, which is not a good fit for the GPU&rsquo;s architecture. GPUs want all their cores to be doing the same thing at a time. This is where <strong>Bitonic Sort</strong> comes in. It’s what&rsquo;s known as a &ldquo;sorting network.&rdquo; This means the entire sequence of comparisons and swaps is fixed and data-independent. It doesn&rsquo;t matter if the data is already sorted, reversed, or random; the exact same set of operations will be performed. This predictable, branch-free nature makes it a perfect match for the GPU.</p>
+<p>Its time complexity on a serial machine is $O(n \log^2 n)$, which is worse than the $O(n \log n)$ of Mergesort, but that doesn&rsquo;t matter. Because every comparison in a given stage can be run in parallel, its performance on the GPU is quite good. In the next section I&rsquo;ll go into some technical detail on how it works.</p>
+<h3 class="heading" id="the-bitonic-kernel">
+  The Bitonic Kernel
+  <a class="anchor" href="#the-bitonic-kernel">#</a>
+</h3>
+<p>The implementation lives in a fragment shader, our &ldquo;sorting kernel.&rdquo; The core idea is to treat our giant 1D list of splats as a 2D texture. The JS code on the CPU acts as a simple driver, running a loop that executes the sort stages in order.</p>
+<p>For each stage, we run our sorting kernel. The kernel&rsquo;s job is simple:</p>
+<ol>
+<li>Each pixel in our texture represents one splat.</li>
+<li>The JS driver passes two uniforms, <code>uStepj</code> and <code>uStepk</code>, which define the current stage of the sort. These values determine how &ldquo;far away&rdquo; each element&rsquo;s comparison partner is.</li>
+<li>Inside the shader, each pixel uses its coordinate (<code>gl_FragCoord</code>) and the uniforms to calculate the coordinate of the other splat it needs to compare itself against. This is done with simple bitwise logic: <code>lx = idxx ^ uStepjx</code>.</li>
+<li>It fetches its own value and its partner&rsquo;s value from an input texture.</li>
+<li>It compares them.</li>
+<li>Based on the comparison, it writes the correct value (either its own or its partner&rsquo;s, depending on whether it should keep the smaller or larger one) to an <strong>output texture</strong>.</li>
+</ol>
+<h3 class="heading" id="ping-ponging-textures">
+  Ping-Ponging Textures
+  <a class="anchor" href="#ping-ponging-textures">#</a>
+</h3>
+<p>You can&rsquo;t read from and write to the same texture in a single draw call. So, we use a &ldquo;ping-pong&rdquo; or &ldquo;double-buffering&rdquo; technique. We have two identical textures, let&rsquo;s call them <code>A</code> and <code>B</code>.</p>
+<ul>
+<li><strong>Pass 1:</strong> We read from <code>A</code>, run the compare-and-swap logic, and write the results to <code>B</code>.</li>
+<li><strong>Pass 2:</strong> We read from <code>B</code>, run the next stage of logic, and write the results back to <code>A</code>.</li>
+</ul>
+<p>We continue this, swapping which texture is the source and which is the destination, for all $O(\log^2 n)$ stages of the sort. My code manages this by having an array of two kernels (<code>pipeline.bitKer</code>) and alternating between them.</p>
+<h3 class="heading" id="sorting-keys-not-payloads">
+  Sorting Keys, Not Payloads
+  <a class="anchor" href="#sorting-keys-not-payloads">#</a>
+</h3>
+<p>It would be incredibly inefficient to swap all the splat data (position, color, covariance) around for every single comparison step. The bandwidth costs would be huge.</p>
+<p>Instead, we use a key-value approach. At the start of the frame, I create a temporary <code>RG32UI</code> texture. For each splat, I store two things:</p>
+<ul>
+<li><strong>R Channel (Key):</strong> The depth of the splat (its distance to the camera, packed into a 32-bit float and reinterpreted as an integer for sorting).</li>
+<li><strong>G Channel (Index):</strong> The splat&rsquo;s original index (from 0 to N-1).</li>
+</ul>
+<p>The bitonic sort kernel operates <em>only</em> on this lightweight texture, sorting the <code>(depth, index)</code> pairs based on the <code>depth</code> key.</p>
+<p>The final output of this entire multi-pass sorting process isn&rsquo;t a texture with re-arranged splat data. It&rsquo;s a texture containing all the original indices, but now in the correct back-to-front order. This sorted index map is the critical piece of information we need for the final rendering pass. Now we just have to use it.</p>
+<h2 class="heading" id="the-final-trick-permuting-data-with-mrts">
+  The Final Trick: Permuting Data with MRTs
+  <a class="anchor" href="#the-final-trick-permuting-data-with-mrts">#</a>
+</h2>
+<p>So, we&rsquo;ve got our sorted index map. It&rsquo;s a texture where each pixel tells us the original index of the splat that <em>should</em> be drawn at this position in the sorted sequence. For example, the pixel at <code>(0,0)</code> might contain the index <code>1,234,567</code>, meaning the splat that was originally at index 1,234,567 is the furthest from the camera and should be drawn first.</p>
+<p>How do we use this map?</p>
+<p>The most straightforward way would be to pass this index map to our final rendering shader. In the vertex shader, for the splat we&rsquo;re about to draw (say, <code>gl_VertexID = 0</code>), we would first read the index map at coordinate <code>0</code> to get the real data index (<code>1,234,567</code>). Then, we&rsquo;d use <em>that</em> index to go and fetch the splat&rsquo;s position, color, and covariance data from our main data textures.</p>
+<p>This is called an <strong>indirect</strong> or <strong>dependent texture read</strong>. And it&rsquo;s a performance killer. The GPU has to wait for the result of the first texture read (from the index map) before it even knows the memory address of the data it needs for the second read. This creates stalls in the pipeline and kills the GPU&rsquo;s ability to hide memory latency. It works, but it&rsquo;s not fast.</p>
+<h3 class="heading" id="the-permutation-pass-a-better-way">
+  The Permutation Pass: A Better Way
+  <a class="anchor" href="#the-permutation-pass-a-better-way">#</a>
+</h3>
+<p>To achieve maximum performance, we need to eliminate that indirect lookup in the final, hot rendering loop. The solution is to add one more step before rendering: a full <strong>permutation pass</strong>.</p>
+<p>The idea is to create a brand new set of splat attribute textures that are already physically sorted. We&rsquo;ll have <code>sortedPositions</code>, <code>sortedColors</code>, <code>sortedCovariances</code>, and so on. The splat data at index <code>0</code> of these textures will be for the furthest splat, index <code>1</code> for the second furthest, and so on.</p>
+<p>Once we have these sorted textures, the final rendering pass becomes dead simple and blazing fast. The vertex shader for <code>gl_VertexID</code> can just read directly from <code>sortedPositions[gl_VertexID]</code>, <code>sortedColors[gl_VertexID]</code>, etc. All memory access is linear and predictable, which is exactly what the GPU loves.</p>
+<p>But a permutation pass sounds expensive. We have to read from the index map, then read from all our original attribute textures, and write out to a whole new set of attribute textures. Doing that sequentially would involve one pass to create <code>sortedPositions</code>, a second pass for <code>sortedColors</code>, and this would be slow.</p>
+<h3 class="heading" id="one-pass-to-rule-them-all-multiple-render-targets-mrts">
+  One Pass to Rule Them All: Multiple Render Targets (MRTs)
+  <a class="anchor" href="#one-pass-to-rule-them-all-multiple-render-targets-mrts">#</a>
+</h3>
+<p>This is where that final WebGL2 superpower comes into play: <strong>Multiple Render Targets (MRTs)</strong>. MRTs allow a single fragment shader to write to several different output textures at the same time.</p>
+<p>I created a single permutation kernel (<code>createTexturePermuteKernel</code> in the code) that does the following in one draw call:</p>
+<ol>
+<li>The kernel is set up to output to multiple textures simultaneously (<code>layout(location = 0) out vec4 outPosition; layout(location = 1) out vec4 outColor;</code>&hellip; etc.).</li>
+<li>For each pixel it&rsquo;s processing, it first does a single read from the sorted index map to find out which original splat&rsquo;s data it needs to grab.</li>
+<li>It then reads the position, color, and covariance for that splat from all the original (unsorted) attribute textures.</li>
+<li>Finally, it writes the position data to the first output texture, the color data to the second, the covariance to the third, and so on.</li>
+</ol>
+<p>By using MRTs, we re-order all of our splat data in a single, efficient pass.</p>
+<h3 class="heading" id="the-full-pipeline">
+  The Full Pipeline
+  <a class="anchor" href="#the-full-pipeline">#</a>
+</h3>
+<p>So, to recap, the entire process for rendering a single frame looks like this:</p>
+<ol>
+<li><strong>Depth Pass:</strong> A quick pass to calculate the camera-space depth for every splat and store it in a texture.</li>
+<li><strong>Sort Pass:</strong> Execute the bitonic sort network. This is a series of &ldquo;ping-pong&rdquo; draw calls that operate on a lightweight <code>(depth, index)</code> texture, producing our final sorted index map.</li>
+<li><strong>Permute Pass:</strong> A single draw call using our MRT kernel to generate a new, fully-sorted set of splat attribute textures.</li>
+<li><strong>Render Pass:</strong> The final draw call. We draw our <code>gl.POINTS</code> and the shaders read linearly from the sorted textures. No indirection, no complexity, just raw speed.</li>
+</ol>
+<p>This combination of a GPU-native sorting network and an efficient MRT-based permutation pass is the engine that drives the renderer. By understanding the hardware and leveraging the right WebGL2 features, we can build a system that sorts and renders millions of primitives in real-time, right in your browser.</p>
+
+    </div>
+  </article>
+
+  
+
+  
+
+  
+  
+
+<div class="single-pagination">
+    <hr />
+
+    <div class="flexnowrap">
+
+        <div class="single-pagination-prev">
+            
+        </div>
+
+        <div class="single-pagination-next">
+            
+            <div class="single-pagination-container-next">
+                <div class="single-pagination-text">
+                    <a href="/posts/cc-nn-ansatz/">
+                        A Coupled Cluster Neural Network Ansatz
+                    </a>
+                </div>
+                <div class="single-pagination-text">→</div>
+            </div>
+            
+        </div>
+
+    </div>
+
+    <hr />
+</div>
+
+
+
+  
+
+  
+
+  
+  <div class="back-to-top">
+    <a href="#top">
+      back to top
+    </a>
+  </div>
+  
+
+</div>
+
+
+    </main>
+  </div>
+
+  
+  
+
+
+
+
+
+    
+
+
+
+
+  <footer>
+    
+
+    
+    
+
+
+
+
+
+    
+
+
+
+
+    
+    <p>Powered by
+        <a href="https://gohugo.io/">Hugo</a>
+        and
+        <a href="https://github.com/tomfran/typo">tomfran/typo</a>
+    </p>
+    
+    
+    
+
+
+  </footer>
+
+  
+</body>
+
+<script src="/js/theme-switch.js"></script>
+<script defer src="/js/copy-code.js"></script>
+</html>
