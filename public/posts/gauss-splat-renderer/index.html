@@ -2,7 +2,7 @@
 <html lang="en-us"
   dir="ltr">
 
-<head>
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
   <meta charset="utf-8">
 <meta name="viewport" content="width=device-width">
 
@@ -20,11 +20,11 @@
 
 
 
-<link rel="icon" type="image/ico" href="https://blog.coalescencelab.com/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="https://blog.coalescencelab.com/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="https://blog.coalescencelab.com/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="https://blog.coalescencelab.com/android-chrome-192x192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="https://blog.coalescencelab.com/apple-touch-icon.png">
+<link rel="icon" type="image/ico" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="http://localhost:1313/android-chrome-192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="http://localhost:1313/apple-touch-icon.png">
 
 <meta name="description" content=""/>
 
@@ -32,19 +32,22 @@
 
 <title>
     
-     | A Nejati&#39;s blog
+    Hacking Together the Fastest WebGL2 Gaussian Splat Renderer | A Nejati&#39;s blog
     
 </title>
 
-<link rel="canonical" href="https://blog.coalescencelab.com/posts/gauss-splat-renderer/"/>
+<link rel="canonical" href="http://localhost:1313/posts/gauss-splat-renderer/"/>
 
-<meta property="og:url" content="https://blog.coalescencelab.com/posts/gauss-splat-renderer/">
+<meta property="og:url" content="http://localhost:1313/posts/gauss-splat-renderer/">
   <meta property="og:site_name" content="A Nejati&#39;s blog">
-  <meta property="og:title" content="A Nejati&#39;s blog">
-  <meta property="og:description" content="Hacking Together the Fastest WebGL2 Gaussian Splat Renderer # Gaussian Splats are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn’t really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there’s a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.">
+  <meta property="og:title" content="Hacking Together the Fastest WebGL2 Gaussian Splat Renderer">
+  <meta property="og:description" content="Gaussian Splats are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn’t really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there’s a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.
+The official papers usually show off CUDA-based renderers, which is great but locks you into specific hardware or requires native apps that can’t run in a browser. I wanted to build something that could hit 60fps on basically any machine with a modern browser. That meant figuring out how to do the heaviest part (the sorting) entirely on the GPU using web-standard APIs.">
   <meta property="og:locale" content="en_us">
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-09-07T01:38:00+00:00">
+    <meta property="article:modified_time" content="2025-09-07T01:38:00+00:00">
 
 
 
@@ -58,10 +61,6 @@
 
 
 <link rel="stylesheet" href="/assets/combined.min.92c3bf7119b98cfdc79e93f36a451eb901d8bbbfed7d75814e6436cf6c9085dc.css" media="all">
-
-
-
-
 
 
 
@@ -97,7 +96,7 @@
     
 
     <h1 class="header-title">
-        <a href="https://blog.coalescencelab.com/">A Nejati&#39;s blog</a>
+        <a href="http://localhost:1313/">A Nejati&#39;s blog</a>
     </h1>
 
     <div class="header-menu">
@@ -137,24 +136,31 @@
 
 
 <div class="breadcrumbs"><a href="/">Home</a><span class="breadcrumbs-separator">/</span><a href="/posts/">Posts</a><span class="breadcrumbs-separator">/</span>
-        <a href="/posts/gauss-splat-renderer/"></a></div>
+        <a href="/posts/gauss-splat-renderer/">Hacking Together the Fastest WebGL2 Gaussian Splat Renderer</a></div>
 
 
 <div >
   <article>
     <header class="single-intro-container">
         
-        <h1 class="single-title"></h1>
+        <h1 class="single-title">Hacking Together the Fastest WebGL2 Gaussian Splat Renderer</h1>
         
+        <div class="single-subsummary">
+          
+          <div>
+            
+            <p class="author">A Nejati </p>
+            
+            <p class="single-date">
+              <time datetime="2025-09-07T01:38:00&#43;00:00">September 7, 2025</time>
+            </p>
+          </div>
+        </div>
         
     </header>
     
     <div class="single-content">
-      <h1 class="heading" id="hacking-together-the-fastest-webgl2-gaussian-splat-renderer">
-  Hacking Together the Fastest WebGL2 Gaussian Splat Renderer
-  <a class="anchor" href="#hacking-together-the-fastest-webgl2-gaussian-splat-renderer">#</a>
-</h1>
-<p><a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/">Gaussian Splats</a> are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn&rsquo;t really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there&rsquo;s a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.</p>
+      <p><a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/">Gaussian Splats</a> are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn&rsquo;t really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there&rsquo;s a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.</p>
 <p>The official papers usually show off CUDA-based renderers, which is great but locks you into specific hardware or requires native apps that can&rsquo;t run in a browser. I wanted to build something that could hit 60fps on basically any machine with a modern browser. That meant figuring out how to do the heaviest part (the sorting) entirely on the GPU using web-standard APIs.</p>
 <p>So a while ago, <a href="https://github.com/PanverseRobotics/portality-web-viewer">I built a WebGL2 renderer</a> that does exactly that. The core idea is to offload the entire per-frame sort of millions of splats to the GPU using a bitonic sorting network implemented in fragment shaders.</p>
 <p>Here’s the breakdown of the tech stack and the main tricks I used:</p>
@@ -320,18 +326,18 @@
 
         <div class="single-pagination-prev">
             
+            <div class="single-pagination-container-prev">
+                <div class="single-pagination-text">←</div>
+                <div class="single-pagination-text">
+                    <a href="/posts/fpattention/">
+                        Long Context Transformers with Finely Crafted State Spaces
+                    </a>
+                </div>
+            </div>
+            
         </div>
 
         <div class="single-pagination-next">
-            
-            <div class="single-pagination-container-next">
-                <div class="single-pagination-text">
-                    <a href="/posts/cc-nn-ansatz/">
-                        A Coupled Cluster Neural Network Ansatz
-                    </a>
-                </div>
-                <div class="single-pagination-text">→</div>
-            </div>
             
         </div>
 
@@ -400,6 +406,27 @@
 
   </footer>
 
+  
+  <link rel="stylesheet" 
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  
+<script defer 
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+
+<script defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body);"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false }
+      ]
+    });
+  });
+</script>
   
 </body>
 

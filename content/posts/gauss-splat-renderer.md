@@ -1,4 +1,10 @@
-# Hacking Together the Fastest WebGL2 Gaussian Splat Renderer
++++
+title = 'Hacking Together the Fastest WebGL2 Gaussian Splat Renderer'
+date = 2025-09-07T01:38:00-00:00
+author = "A Nejati"
+draft = false
+math = true
++++
 
 [Gaussian Splats](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) are becoming really popular for computer graphics. You can do photorealistic rendering in a way that wasn't really possible before and you can use a lot of machine learning methods for things like learning scenes and generating new scenes. But compared to traditional (polygon) based rendering, there's a tradeoff: you need to process, sort, and render a lot more primitives (millions of splats) in real time.
 
