@@ -1,3 +1,6 @@
 [submodule "themes/typo"]
 	path = themes/typo
 	url = https://github.com/tomfran/typo.git
+[submodule "static/splat-viewer"]
+	path = static/splat-viewer
+	url = https://github.com/PanverseRobotics/portality-web-viewer
