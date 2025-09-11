@@ -3,6 +3,8 @@ languageCode = 'en-us'
 title = "A Nejati's blog"
 theme = 'typo'
 
+ignoreFiles = ["^\\.git", "\\.DS_Store"]
+
 # Google analytics code
 # googleAnalytics = "G-xxxxxxxxx"
 
