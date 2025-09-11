@@ -27,7 +27,7 @@ jobs:
           # if the submodule is private in another org, set `token: ${{ secrets.PAT_WITH_REPO_SCOPE }}`
       - uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: '0.128.0'
+          hugo-version: '0.148.2'
           extended: true
       - name: Build
         env:
