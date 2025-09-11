@@ -10,7 +10,7 @@ math = true
 
 The official papers usually show off CUDA-based renderers, which is great but locks you into specific hardware or requires native apps that can't run in a browser. I wanted to build something that could hit 60fps on basically any machine with a modern browser. That meant figuring out how to do the heaviest part (the sorting) entirely on the GPU using web-standard APIs.
 
-So a while ago, [I built a WebGL2 renderer](https://github.com/PanverseRobotics/portality-web-viewer) that does exactly that. The core idea is to offload the entire per-frame sort of millions of splats to the GPU using a bitonic sorting network implemented in fragment shaders.
+So a while ago, [I built a WebGL2 renderer](https://github.com/PanverseRobotics/portality-web-viewer) that does exactly that. The core idea is to offload the entire per-frame sort of millions of splats to the GPU using a bitonic sorting network implemented in fragment shaders. You can try it in your browser [here!](https://anj1.github.io/research/splat-viewer/?camera=-1.4896482414801953%2C3.390495575032005%2C-0.7877998849693162&lookAt=-0.39199591430028635%2C1.6863556266639323%2C1.3527185719665666&up=-0.02041277475655079%2C-0.7872545123100281%2C-0.6162927746772766&download=true&url=https://anj1-splats.s3.us-east-1.amazonaws.com/nike.splat) (move mouse around to rotate and interact)
 
 Here’s the breakdown of the tech stack and the main tricks I used:
 
@@ -139,7 +139,7 @@ Once we have these sorted textures, the final rendering pass becomes dead simple
 
 But a permutation pass sounds expensive. We have to read from the index map, then read from all our original attribute textures, and write out to a whole new set of attribute textures. Doing that sequentially would involve one pass to create `sortedPositions`, a second pass for `sortedColors`, and this would be slow.
 
-### One Pass to Rule Them All: Multiple Render Targets (MRTs)
+### Multiple Render Targets (MRTs)
 
 This is where that final WebGL2 superpower comes into play: **Multiple Render Targets (MRTs)**. MRTs allow a single fragment shader to write to several different output textures at the same time.
 
