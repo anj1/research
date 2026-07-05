@@ -44,7 +44,10 @@ I decided the easiest way I was going to be able to have a module that was good,
 
 An important consideration is power use. The MAX-M10S uses only around ~10 mA when actively tracking, which isn't all that much. The kobo has a 1450 mAh battery. But still, it's nice for it to be turned off when not in use. The kobo usually operates in one of 3 modes: on (e.g. reading a book), "idle" (display powered off but processor still running), and turned off. I found a stable 1.8V line by hunting around on the kobo's main board, and set up the V_BCKP of the gnss module, and the EN of the LDO regulator, to be connected to this line. The line is on when it's on or idle. So when the kobo is idle, the gnss module is powered on, and we can instantly bring it back up. If the kobo is shut down, the gnss is turned off, and the power consumption effectively goes to 0. The tradeoff is that when we cold boot the kobo, we have to wait ~30s for it to obtain a fix. The final trick for power management is that when we go to idle (screen off) mode, to send software commands to the MAX-M10S to turn off tracking but keep tracking data in memory, so that it only consumes a tiny amount of power but comes back up instantly.
 
-I designed the PCB, ordered the parts, and sent out the PCB to be made. The GNSS module came out to $12. The antenna was $3. The 4-layer, 1.2 mm thickness, 35x20 mm pcb came out to $7. So all together, $22, excluding shipping.
+I designed the PCB, ordered the parts, and sent out the PCB to be made. The GNSS module came out to $12. The antenna was $3. The 4-layer, 1.2 mm thickness, 35x20 mm pcb came out to $7. So all together, $22, excluding shipping. You can find the KiCAD files [here](https://github.com/anj1/low-profile-gnss-carrier).
+
+![Custom GNSS module pcb.](img/16-module-schm.png)
+![Custom GNSS module pcb.](img/17-module-3d.png)
 
 ![The custom GNSS module. Bare unsoldered PCB on the left, finished soldered product on the right.](img/13-module.jpg)
 
