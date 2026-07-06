@@ -95,7 +95,7 @@ Next up was getting the actual map and airspace data loaded to see how the color
 
 The map view is where the Clara Colour really proves its worth. The colors make differentiating airspace, terrain, and flight path much easier compared to standard black-and-white e-ink displays.
 
-![Map view showing off the color screen rendering terrain and airspace.](img/31-xcsoar-map.jpg)
+![Map view showing off the color screen rendering terrain and airspace.](img/31-xcsoar-map-.jpg)
 
 Checking the status page confirmed the final hardware integration was solid, showing a 3D fix tracking multiple satellites inside.
 
